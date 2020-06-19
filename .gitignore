@@ -54,6 +54,7 @@ Makefile*
 *.pro.user
 *.qmlproject.user
 *.gcov
+CMakeLists.txt.user
 bin/Qt*.dll
 bin/assistant*
 bin/designer*
