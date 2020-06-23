@@ -14,12 +14,12 @@ Improvements
 
 1. It builds using cmake. No, it doesn't build using qmake anymore. Who cares.
 
+2. Configurable application font - in addition to configurable editor font size.
+
 Planned Improvements
 --------------------
 
-1. Configurable UI fonts.
-
-2. Configurable source path rewrite rules.
+1. Configurable source path rewrite rules.
 
 Other improvements will be planned as soon as the need arises.
 
