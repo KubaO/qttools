@@ -41,25 +41,32 @@ ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
     for (auto size : QFontDatabase::standardSizes()) {
         auto const strSize = QString::number(size);
         cbAppFontSize->addItem(strSize);
+        cbEditorFontSize->addItem(strSize);
     }
     QIcon undoIcon(QLatin1String(":/images/win/undo.png"));
     tbAppFont->setIcon(undoIcon);
+    tbEditorFont->setIcon(undoIcon);
 
     connect(tbAppFont, &QToolButton::clicked, this, &ConfigDialog::resetAppFont);
     connect(fcbAppFont, QOverload<int>::of(&QFontComboBox::activated), this,
             &ConfigDialog::appFontActivated);
     connect(cbAppFontSize, QOverload<int>::of(&QComboBox::activated), this,
             &ConfigDialog::appFontActivated);
+    connect(tbEditorFont, &QToolButton::clicked, this, &ConfigDialog::resetEditorFontSize);
+    connect(cbEditorFontSize, &QComboBox::textActivated, tbEditorFont,
+            [this] { tbEditorFont->setEnabled(true); });
 }
 
 void ConfigDialog::setFrom(const Configuration *config)
 {
     setAppFont(config->appFont());
+    setEditorFontSize(config->editorFontSize());
 }
 
 void ConfigDialog::applyTo(Configuration *config) const
 {
     config->setAppFont(appFont());
+    config->setEditorFontSize(editorFontSize());
 }
 
 QFont ConfigDialog::appFont() const
@@ -90,6 +97,33 @@ void ConfigDialog::resetAppFont()
 void ConfigDialog::appFontActivated()
 {
     tbAppFont->setEnabled(true);
+}
+
+qreal ConfigDialog::editorFontSize() const
+{
+    bool ok;
+    qreal fontSize = cbEditorFontSize->currentText().toFloat(&ok);
+    return ok ? fontSize : qQNaN();
+}
+
+void ConfigDialog::setEditorFontSize(qreal size)
+{
+    if (!qIsNaN(size))
+        cbEditorFontSize->setCurrentText(QString::number(size));
+    else
+        cbEditorFontSize->clearEditText();
+    tbEditorFont->setEnabled(!qIsNaN(editorFontSize()));
+    cbEditorFontSize->clearFocus();
+}
+
+void ConfigDialog::resetEditorFontSize()
+{
+    setEditorFontSize(qQNaN());
+}
+
+void ConfigDialog::editorFontActivated()
+{
+    tbEditorFont->setEnabled(true);
 }
 
 QT_END_NAMESPACE

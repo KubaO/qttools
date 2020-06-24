@@ -48,9 +48,15 @@ private slots:
     void appFontActivated();
     void resetAppFont();
 
+    void editorFontActivated();
+    void resetEditorFontSize();
+
 private:
     QFont appFont() const;
     void setAppFont(const QFont &font);
+
+    qreal editorFontSize() const;
+    void setEditorFontSize(qreal fontSize);
 };
 
 QT_END_NAMESPACE
