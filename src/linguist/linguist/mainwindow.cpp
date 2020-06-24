@@ -34,6 +34,7 @@
 #include "mainwindow.h"
 
 #include "batchtranslationdialog.h"
+#include "configdialog.h"
 #include "configuration.h"
 #include "errorsview.h"
 #include "finddialog.h"
@@ -294,6 +295,9 @@ MainWindow::MainWindow()
 #if !defined(Q_OS_OSX) && !defined(Q_OS_WIN)
     setWindowIcon(QPixmap(QLatin1String(":/images/appicon.png") ));
 #endif
+
+    m_configDialog = new ConfigDialog(this);
+    connect(m_configDialog, SIGNAL(accepted()), SLOT(acceptConfigDialog()));
 
     m_dataModel = new MultiDataModel(this);
     m_messageModel = new MessageModel(this, m_dataModel);
@@ -1070,6 +1074,17 @@ void MainWindow::showBatchTranslateDialog()
     if (m_batchTranslateDialog->exec() != QDialog::Accepted)
         m_messageModel->blockSignals(false);
     // else signal finished() calls refreshItemViews()
+}
+
+void MainWindow::showConfigDialog()
+{
+    m_configDialog->setFrom(m_configuration);
+    m_configDialog->open();
+}
+
+void MainWindow::acceptConfigDialog()
+{
+    m_configDialog->applyTo(m_configuration);
 }
 
 void MainWindow::showTranslateDialog()
@@ -1913,6 +1928,8 @@ void MainWindow::setupMenuBar()
     connect(m_ui.actionTranslationFileSettings, SIGNAL(triggered()), this, SLOT(showTranslationSettings()));
 
     connect(m_batchTranslateDialog, SIGNAL(finished()), SLOT(refreshItemViews()));
+
+    connect(m_ui.actionConfiguration, SIGNAL(triggered()), SLOT(showConfigDialog()));
 
     // Translation menu
     // when updating the accelerators, remember the status bar

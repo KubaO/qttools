@@ -26,54 +26,31 @@
 **
 ****************************************************************************/
 
-#ifndef LINGUIST_CONFIGURATION_H
-#define LINGUIST_CONFIGURATION_H
+#ifndef CONFIGDIALOG_H
+#define CONFIGDIALOG_H
 
-#include <QObject>
-#include <QFont>
+#include "ui_configdialog.h"
 
 QT_BEGIN_NAMESPACE
 
-class Configuration : public QObject
+class Configuration;
+
+class ConfigDialog : public QDialog, public Ui::ConfigDialog
 {
     Q_OBJECT
-    Q_PROPERTY(QFont appFont READ appFont WRITE setAppFont RESET resetAppFont NOTIFY appFontChanged)
-    Q_PROPERTY(qreal editorFontSize READ editorFontSize WRITE setEditorFontSize RESET
-                       resetEditorFontSize NOTIFY editorFontSizeChanged)
-    Q_PROPERTY(qreal resolvedEditorFontSize READ resolvedEditorFontSize NOTIFY
-                       resolvedEditorFontSizeChanged)
 public:
-    explicit Configuration(QObject *parent = nullptr);
-    ~Configuration();
+    ConfigDialog(QWidget *parent = 0);
 
-    QFont appFont() const;
-    static QFont systemAppFont();
+    void setFrom(const Configuration *config);
+    void applyTo(Configuration *config) const;
 
-    qreal editorFontSize() const;
-    qreal resolvedEditorFontSize() const;
-
-    void readConfig();
-    void writeConfig() const;
-
-public slots:
-    void setAppFont(const QFont &font);
+private slots:
+    void appFontActivated();
     void resetAppFont();
 
-    void setEditorFontSize(qreal fontSize);
-    void increaseEditorFontSize();
-    void decreaseEditorFontSize();
-    void resetEditorFontSize();
-
-signals:
-    void appFontChanged(const QFont &font);
-    void editorFontSizeChanged(qreal fontSize);
-    void resolvedEditorFontSizeChanged(qreal fontSize);
-
 private:
-    qreal m_editorFontSize = 0.0;
-    qreal m_resolvedEditorFontSize = 0.0;
-
-    void onAppFontChanged(const QFont &font);
+    QFont appFont() const;
+    void setAppFont(const QFont &font);
 };
 
 QT_END_NAMESPACE

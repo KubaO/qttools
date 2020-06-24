@@ -55,6 +55,7 @@ class QTableView;
 class QTreeView;
 
 class BatchTranslationDialog;
+class ConfigDialog;
 class Configuration;
 class ErrorsView;
 class FindDialog;
@@ -105,6 +106,8 @@ private slots:
     void closeFile();
     bool closeAll();
     void findAgain();
+    void showConfigDialog();
+    void acceptConfigDialog();
     void showTranslateDialog();
     void showBatchTranslateDialog();
     void showTranslationSettings();
@@ -223,6 +226,8 @@ private:
     QList<PhraseBook *> m_phraseBooks;
     QMap<QAction *, PhraseBook *> m_phraseBookMenu[3];
     QPrinter *m_printer;
+
+    ConfigDialog *m_configDialog;
 
     FindDialog *m_findDialog;
     QString m_findText;

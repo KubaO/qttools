@@ -36,18 +36,41 @@
 
 QT_BEGIN_NAMESPACE
 
+static const char kOptions_ApplicationFont[] = "Options/ApplicationFont";
 static const char kOptions_EditorFontSize[] = "Options/EditorFontSize";
+
+static QScopedPointer<QFont> staticSystemAppFont;
 
 Configuration::Configuration(QObject *const parent) : QObject(parent)
 {
+    staticSystemAppFont.reset(new QFont(qApp->font()));
     resetEditorFontSize();
     connect(qApp, &QGuiApplication::fontChanged, this, &Configuration::onAppFontChanged);
+}
+
+Configuration::~Configuration()
+{
+    staticSystemAppFont.reset();
+}
+
+QFont Configuration::systemAppFont()
+{
+    return *staticSystemAppFont;
 }
 
 void Configuration::readConfig()
 {
     QSettings config;
     bool ok;
+
+    QString appFontString = config.value(settingPath(kOptions_ApplicationFont)).toString();
+    QFont appFont = systemAppFont();
+    if (!appFontString.isEmpty()) {
+        QFont font;
+        if (font.fromString(appFontString))
+            appFont = font;
+    }
+    setAppFont(appFont);
 
     qreal editorFontSize = config.value(settingPath(kOptions_EditorFontSize)).toReal(&ok);
     if (!ok)
@@ -59,16 +82,40 @@ void Configuration::writeConfig() const
 {
     QSettings config;
 
+    if (qApp->font() != systemAppFont())
+        config.setValue(settingPath(kOptions_ApplicationFont), appFont().toString());
+    else
+        config.remove(settingPath(kOptions_ApplicationFont));
+
     if (!qIsNaN(m_editorFontSize))
         config.setValue(settingPath(kOptions_EditorFontSize), m_editorFontSize);
     else
         config.remove(settingPath(kOptions_EditorFontSize));
 }
 
+QFont Configuration::appFont() const
+{
+    return qApp->font();
+}
+
+void Configuration::setAppFont(const QFont &font)
+{
+    if (font == appFont())
+        return;
+
+    qApp->setFont(font);
+}
+
+void Configuration::resetAppFont()
+{
+    setAppFont(systemAppFont());
+}
+
 void Configuration::onAppFontChanged(const QFont &font)
 {
     Q_UNUSED(font);
     setEditorFontSize(m_editorFontSize); // notify of resolved size change if needed
+    appFontChanged(font);
 }
 
 qreal Configuration::editorFontSize() const
@@ -93,7 +140,7 @@ void Configuration::setEditorFontSize(qreal const fontSize)
         editorFontSizeChanged(m_editorFontSize);
     }
 
-    auto const newResolvedFontSize = !qIsNaN(fontSize) ? fontSize : qApp->font().pointSizeF();
+    auto const newResolvedFontSize = !qIsNaN(fontSize) ? fontSize : appFont().pointSizeF();
     if (m_resolvedEditorFontSize != newResolvedFontSize) {
         m_resolvedEditorFontSize = newResolvedFontSize;
         resolvedEditorFontSizeChanged(m_resolvedEditorFontSize);
