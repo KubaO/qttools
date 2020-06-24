@@ -15,6 +15,7 @@ find_package(Qt5Widgets REQUIRED)
 add_executable(linguist
    batchtranslationdialog.cpp
    batchtranslation.ui
+   configuration.cpp
    errorsview.cpp
    finddialog.cpp
    finddialog.ui

@@ -55,6 +55,7 @@ class QTableView;
 class QTreeView;
 
 class BatchTranslationDialog;
+class Configuration;
 class ErrorsView;
 class FindDialog;
 class FocusWatcher;
@@ -199,6 +200,7 @@ private:
 
     bool searchItem(DataModel::FindLocation where, const QString &searchWhat);
 
+    Configuration *m_configuration;
     QProcess *m_assistantProcess;
     QTreeView *m_contextView;
     QTreeView *m_messageView;

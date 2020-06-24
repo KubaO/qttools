@@ -105,9 +105,6 @@ public slots:
     void setEditorFocus();
     void setTranslation(int latestModel, const QString &translation);
     void setLengthVariants(bool on);
-    void increaseFontSize();
-    void decreaseFontSize();
-    void resetFontSize();
 
 private slots:
     void editorCreated(QTextEdit *);
