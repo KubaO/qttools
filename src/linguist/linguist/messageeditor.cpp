@@ -906,27 +906,4 @@ void MessageEditor::applyFontSize()
     }
 }
 
-void MessageEditor::increaseFontSize()
-{
-    if (m_fontSize >= 32)
-        return;
-
-    m_fontSize *= 1.2f;
-    applyFontSize();
-}
-
-void MessageEditor::decreaseFontSize()
-{
-    if (m_fontSize > 8) {
-        m_fontSize /= 1.2f;
-        applyFontSize();
-    }
-}
-
-void MessageEditor::resetFontSize()
-{
-    m_fontSize = font().pointSize();
-    applyFontSize();
-}
-
 QT_END_NAMESPACE

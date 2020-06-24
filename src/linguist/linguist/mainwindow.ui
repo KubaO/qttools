@@ -196,6 +196,8 @@
     <addaction name="actionSearchAndTranslate"/>
     <addaction name="actionBatchTranslation"/>
     <addaction name="actionTranslationFileSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionConfiguration"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -976,6 +978,14 @@
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionConfiguration">
+   <property name="text">
+    <string>Confi&amp;guration...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open a configuration window</string>
    </property>
   </action>
  </widget>

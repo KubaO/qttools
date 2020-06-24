@@ -34,6 +34,8 @@
 #include "mainwindow.h"
 
 #include "batchtranslationdialog.h"
+#include "configdialog.h"
+#include "configuration.h"
 #include "errorsview.h"
 #include "finddialog.h"
 #include "formpreviewview.h"
@@ -285,12 +287,17 @@ MainWindow::MainWindow()
       m_editActiveModel(-1),
       m_statistics(0)
 {
+    m_configuration = new Configuration(this);
+
     setUnifiedTitleAndToolBarOnMac(true);
     m_ui.setupUi(this);
 
 #if !defined(Q_OS_OSX) && !defined(Q_OS_WIN)
     setWindowIcon(QPixmap(QLatin1String(":/images/appicon.png") ));
 #endif
+
+    m_configDialog = new ConfigDialog(this);
+    connect(m_configDialog, SIGNAL(accepted()), SLOT(acceptConfigDialog()));
 
     m_dataModel = new MultiDataModel(this);
     m_messageModel = new MessageModel(this, m_dataModel);
@@ -490,6 +497,8 @@ MainWindow::MainWindow()
     as -= QSize(30, 30);
     resize(QSize(1000, 800).boundedTo(as));
     show();
+
+    connect(m_configuration, &Configuration::resolvedEditorFontSizeChanged, m_messageEditor, &MessageEditor::setFontSize);
     readConfig();
     m_statistics = 0;
 
@@ -1065,6 +1074,17 @@ void MainWindow::showBatchTranslateDialog()
     if (m_batchTranslateDialog->exec() != QDialog::Accepted)
         m_messageModel->blockSignals(false);
     // else signal finished() calls refreshItemViews()
+}
+
+void MainWindow::showConfigDialog()
+{
+    m_configDialog->setFrom(m_configuration);
+    m_configDialog->open();
+}
+
+void MainWindow::acceptConfigDialog()
+{
+    m_configDialog->applyTo(m_configuration);
 }
 
 void MainWindow::showTranslateDialog()
@@ -1909,6 +1929,8 @@ void MainWindow::setupMenuBar()
 
     connect(m_batchTranslateDialog, SIGNAL(finished()), SLOT(refreshItemViews()));
 
+    connect(m_ui.actionConfiguration, SIGNAL(triggered()), SLOT(showConfigDialog()));
+
     // Translation menu
     // when updating the accelerators, remember the status bar
     connect(m_ui.actionPrevUnfinished, SIGNAL(triggered()), this, SLOT(prevUnfinished()));
@@ -1944,9 +1966,9 @@ void MainWindow::setupMenuBar()
     connect(m_ui.actionStatistics, SIGNAL(triggered()), this, SLOT(toggleStatistics()));
     connect(m_ui.actionVisualizeWhitespace, SIGNAL(triggered()), this, SLOT(toggleVisualizeWhitespace()));
     connect(m_ui.menuView, SIGNAL(aboutToShow()), this, SLOT(updateViewMenu()));
-    connect(m_ui.actionIncreaseZoom, SIGNAL(triggered()), m_messageEditor, SLOT(increaseFontSize()));
-    connect(m_ui.actionDecreaseZoom, SIGNAL(triggered()), m_messageEditor, SLOT(decreaseFontSize()));
-    connect(m_ui.actionResetZoomToDefault, SIGNAL(triggered()), m_messageEditor, SLOT(resetFontSize()));
+    connect(m_ui.actionIncreaseZoom, SIGNAL(triggered()), m_configuration, SLOT(increaseEditorFontSize()));
+    connect(m_ui.actionDecreaseZoom, SIGNAL(triggered()), m_configuration, SLOT(decreaseEditorFontSize()));
+    connect(m_ui.actionResetZoomToDefault, SIGNAL(triggered()), m_configuration, SLOT(resetEditorFontSize()));
     connect(m_ui.actionShowMoreGuesses, SIGNAL(triggered()), m_phraseView, SLOT(moreGuesses()));
     connect(m_ui.actionShowFewerGuesses, SIGNAL(triggered()), m_phraseView, SLOT(fewerGuesses()));
     connect(m_phraseView, SIGNAL(showFewerGuessesAvailable(bool)), m_ui.actionShowFewerGuesses, SLOT(setEnabled(bool)));
@@ -2634,6 +2656,8 @@ void MainWindow::readConfig()
 {
     QSettings config;
 
+    m_configuration->readConfig();
+
     restoreGeometry(config.value(settingPath("Geometry/WindowGeometry")).toByteArray());
     restoreState(config.value(settingPath("MainWindowState")).toByteArray());
 
@@ -2652,8 +2676,6 @@ void MainWindow::readConfig()
     m_ui.actionVisualizeWhitespace->setChecked(
         config.value(settingPath("Options/VisualizeWhitespace"), true).toBool());
 
-    m_messageEditor->setFontSize(
-                config.value(settingPath("Options/EditorFontsize"), font().pointSize()).toReal());
     m_phraseView->setMaxCandidates(config.value(settingPath("Options/NumberOfGuesses"),
                                                 PhraseView::getDefaultMaxCandidates()).toInt());
 
@@ -2670,6 +2692,7 @@ void MainWindow::readConfig()
 void MainWindow::writeConfig()
 {
     QSettings config;
+    m_configuration->writeConfig();
     config.setValue(settingPath("Geometry/WindowGeometry"),
         saveGeometry());
     config.setValue(settingPath("Validators/Accelerator"),
@@ -2690,7 +2713,6 @@ void MainWindow::writeConfig()
         saveState());
     recentFiles().writeConfig();
 
-    config.setValue(settingPath("Options/EditorFontsize"), m_messageEditor->fontSize());
     config.setValue(settingPath("Options/NumberOfGuesses"), m_phraseView->getMaxCandidates());
 
     config.beginWriteArray(settingPath("OpenedPhraseBooks"),
@@ -2804,18 +2826,18 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
                 m_contextView->setFocus();
         } else if ((ke->key() == Qt::Key_Plus || ke->key() == Qt::Key_Equal)
                    && (ke->modifiers() & Qt::ControlModifier)) {
-            m_messageEditor->increaseFontSize();
+            m_configuration->increaseEditorFontSize();
         } else if (ke->key() == Qt::Key_Minus
                    && (ke->modifiers() & Qt::ControlModifier)) {
-            m_messageEditor->decreaseFontSize();
+            m_configuration->decreaseEditorFontSize();
         }
     } else if (event->type() == QEvent::Wheel) {
         QWheelEvent *we = static_cast<QWheelEvent *>(event);
         if (we->modifiers() & Qt::ControlModifier) {
             if (we->angleDelta().y() > 0)
-                m_messageEditor->increaseFontSize();
+                m_configuration->increaseEditorFontSize();
             else
-                m_messageEditor->decreaseFontSize();
+                m_configuration->decreaseEditorFontSize();
         }
     }
     return false;
