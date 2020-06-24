@@ -12,16 +12,14 @@ git commit.*
 Improvements
 ------------
 
-(None yet)
+1. It builds using cmake. No, it doesn't build using qmake anymore. Who cares.
 
 Planned Improvements
 --------------------
 
-1. Build using cmake.
+1. Configurable UI fonts.
 
-2. Configurable UI fonts.
-
-3. Configurable source path rewrite rules.
+2. Configurable source path rewrite rules.
 
 Other improvements will be planned as soon as the need arises.
 
