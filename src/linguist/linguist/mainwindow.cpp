@@ -498,7 +498,10 @@ MainWindow::MainWindow()
     resize(QSize(1000, 800).boundedTo(as));
     show();
 
-    connect(m_configuration, &Configuration::resolvedEditorFontSizeChanged, m_messageEditor, &MessageEditor::setFontSize);
+    connect(m_configuration, &Configuration::resolvedEditorFontSizeChanged, m_messageEditor,
+            &MessageEditor::setFontSize);
+    connect(m_configuration, &Configuration::sourcePathRewritesChanged, m_sourceCodeView,
+            &SourceCodeView::setFileNameSubstitutions);
     readConfig();
     m_statistics = 0;
 

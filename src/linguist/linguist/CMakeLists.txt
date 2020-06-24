@@ -39,6 +39,7 @@ add_executable(linguist
    printout.cpp
    recentfiles.cpp
    sourcecodeview.cpp
+   substitutionmodel.cpp
    statistics.cpp
    statistics.ui
    translatedialog.cpp

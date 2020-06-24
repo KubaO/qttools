@@ -30,14 +30,16 @@
 
 #include "configdialog.h"
 #include "configuration.h"
+#include "substitutionmodel.h"
 
 #include <QLineEdit>
 
 QT_BEGIN_NAMESPACE
 
-ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
+ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent), m_substs(new SubstitutionModel(this))
 {
     setupUi(this);
+
     for (auto size : QFontDatabase::standardSizes()) {
         auto const strSize = QString::number(size);
         cbAppFontSize->addItem(strSize);
@@ -47,26 +49,35 @@ ConfigDialog::ConfigDialog(QWidget *parent) : QDialog(parent)
     tbAppFont->setIcon(undoIcon);
     tbEditorFont->setIcon(undoIcon);
 
-    connect(tbAppFont, &QToolButton::clicked, this, &ConfigDialog::resetAppFont);
+    substitutionsView->setModel(m_substs);
+    substitutionsView->resizeColumnsToContents();
+    substitutionsView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    auto const clicked = &QAbstractButton::clicked;
+    connect(tbAppFont, clicked, this, &ConfigDialog::resetAppFont);
     connect(fcbAppFont, QOverload<int>::of(&QFontComboBox::activated), this,
             &ConfigDialog::appFontActivated);
     connect(cbAppFontSize, QOverload<int>::of(&QComboBox::activated), this,
             &ConfigDialog::appFontActivated);
-    connect(tbEditorFont, &QToolButton::clicked, this, &ConfigDialog::resetEditorFontSize);
+    connect(tbEditorFont, clicked, this, &ConfigDialog::resetEditorFontSize);
     connect(cbEditorFontSize, &QComboBox::textActivated, tbEditorFont,
             [this] { tbEditorFont->setEnabled(true); });
+    connect(substitutionsAddRow, clicked, this, &ConfigDialog::addSubstitutionRow);
+    connect(substitutionsRemoveRow, clicked, this, &ConfigDialog::removeSubstitutionRow);
 }
 
 void ConfigDialog::setFrom(const Configuration *config)
 {
     setAppFont(config->appFont());
     setEditorFontSize(config->editorFontSize());
+    m_substs->setSubstitutions(config->sourcePathRewrites());
 }
 
 void ConfigDialog::applyTo(Configuration *config) const
 {
     config->setAppFont(appFont());
     config->setEditorFontSize(editorFontSize());
+    config->setSourcePathRewrites(m_substs->substitutions());
 }
 
 QFont ConfigDialog::appFont() const
@@ -124,6 +135,23 @@ void ConfigDialog::resetEditorFontSize()
 void ConfigDialog::editorFontActivated()
 {
     tbEditorFont->setEnabled(true);
+}
+
+void ConfigDialog::addSubstitutionRow()
+{
+    substitutionsView->selectionModel();
+    int row = substitutionsView->currentIndex().row();
+    if (row < 0)
+        row = 0;
+    m_substs->insertRow(row);
+}
+
+void ConfigDialog::removeSubstitutionRow()
+{
+    int row = substitutionsView->currentIndex().row();
+    if (row < 0)
+        return;
+    m_substs->removeRow(row);
 }
 
 QT_END_NAMESPACE

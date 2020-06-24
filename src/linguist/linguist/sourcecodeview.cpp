@@ -41,7 +41,7 @@ QT_BEGIN_NAMESPACE
 SourceCodeView::SourceCodeView(QWidget *parent)
   : QPlainTextEdit(parent),
     m_isActive(true),
-    m_lineNumToLoad(0)
+    m_lineNum(0)
 {
     setReadOnly(true);
 }
@@ -58,25 +58,38 @@ void SourceCodeView::setSourceContext(const QString &fileName, const int lineNum
         return;
     }
 
+    m_lineNum = lineNum;
     if (m_isActive) {
         showSourceCode(fileName, lineNum);
     } else {
         m_fileToLoad = fileName;
-        m_lineNumToLoad = lineNum;
     }
+}
+
+void SourceCodeView::setFileNameSubstitutions(const QVector<Substitution> &substs)
+{
+    m_fileNameSubstitutions = substs;
+    if (!m_currentRequestedFileName.isEmpty())
+        showSourceCode(m_currentRequestedFileName, m_lineNum);
 }
 
 void SourceCodeView::setActivated(bool activated)
 {
     m_isActive = activated;
     if (activated && !m_fileToLoad.isEmpty()) {
-        showSourceCode(m_fileToLoad, m_lineNumToLoad);
+        showSourceCode(m_fileToLoad, m_lineNum);
         m_fileToLoad.clear();
     }
 }
 
-void SourceCodeView::showSourceCode(const QString &absFileName, const int lineNum)
+void SourceCodeView::showSourceCode(const QString &reqFileName, const int lineNum)
 {
+    m_currentRequestedFileName = reqFileName;
+
+    QString absFileName = reqFileName;
+    for (auto &subst : m_fileNameSubstitutions)
+        subst.applyTo(absFileName);
+
     QString fileText = fileHash.value(absFileName);
 
     if (fileText.isNull()) { // File not in hash

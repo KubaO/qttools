@@ -36,6 +36,9 @@
 
 QT_BEGIN_NAMESPACE
 
+static const char kSourcePathRewrites[] = "SourcePathRewrites";
+static const QLatin1String kRegExp("RegExp");
+static const QLatin1String kReplacement("Replacement");
 static const char kOptions_ApplicationFont[] = "Options/ApplicationFont";
 static const char kOptions_EditorFontSize[] = "Options/EditorFontSize";
 
@@ -76,6 +79,17 @@ void Configuration::readConfig()
     if (!ok)
         editorFontSize = qQNaN();
     setEditorFontSize(editorFontSize);
+
+    m_sourcePathRewrites.resize(0);
+    int size = config.beginReadArray(settingPath(kSourcePathRewrites));
+    for (int i = 0; i < size; ++i) {
+        config.setArrayIndex(i);
+        Substitution subst;
+        subst.regExp.setPattern(config.value(kRegExp).toString());
+        subst.replacement = config.value(kReplacement).toString();
+        m_sourcePathRewrites.push_back(std::move(subst));
+    }
+    config.endArray();
 }
 
 void Configuration::writeConfig() const
@@ -91,6 +105,21 @@ void Configuration::writeConfig() const
         config.setValue(settingPath(kOptions_EditorFontSize), m_editorFontSize);
     else
         config.remove(settingPath(kOptions_EditorFontSize));
+
+    int oldArraySize = config.beginReadArray(settingPath(kSourcePathRewrites));
+    config.endArray();
+    if (oldArraySize > m_sourcePathRewrites.size())
+        // Remove the entire array if the new one has less entries. Otherwise
+        // the old entries will remain.
+        config.remove(settingPath(kSourcePathRewrites));
+    config.beginWriteArray(settingPath(kSourcePathRewrites), m_sourcePathRewrites.size());
+    int i = 0;
+    for (auto &rewrite : m_sourcePathRewrites) {
+        config.setArrayIndex(i++);
+        config.setValue(kRegExp, rewrite.regExp.pattern());
+        config.setValue(kReplacement, rewrite.replacement);
+    }
+    config.endArray();
 }
 
 QFont Configuration::appFont() const
@@ -164,6 +193,19 @@ void Configuration::decreaseEditorFontSize()
 void Configuration::resetEditorFontSize()
 {
     setEditorFontSize(qQNaN());
+}
+
+QVector<Substitution> Configuration::sourcePathRewrites() const
+{
+    return m_sourcePathRewrites;
+}
+
+void Configuration::setSourcePathRewrites(const QVector<Substitution> &rewrites)
+{
+    if (m_sourcePathRewrites == rewrites)
+        return;
+    m_sourcePathRewrites = rewrites;
+    emit sourcePathRewritesChanged(m_sourcePathRewrites);
 }
 
 QT_END_NAMESPACE

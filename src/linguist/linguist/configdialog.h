@@ -34,8 +34,9 @@
 QT_BEGIN_NAMESPACE
 
 class Configuration;
+class SubstitutionModel;
 
-class ConfigDialog : public QDialog, public Ui::ConfigDialog
+class ConfigDialog : public QDialog, private Ui::ConfigDialog
 {
     Q_OBJECT
 public:
@@ -51,7 +52,12 @@ private slots:
     void editorFontActivated();
     void resetEditorFontSize();
 
+    void addSubstitutionRow();
+    void removeSubstitutionRow();
+
 private:
+    SubstitutionModel *m_substs;
+
     QFont appFont() const;
     void setAppFont(const QFont &font);
 

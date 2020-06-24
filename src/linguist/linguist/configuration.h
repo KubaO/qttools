@@ -29,8 +29,10 @@
 #ifndef LINGUIST_CONFIGURATION_H
 #define LINGUIST_CONFIGURATION_H
 
-#include <QObject>
+#include "substitutionmodel.h"
+
 #include <QFont>
+#include <QObject>
 
 QT_BEGIN_NAMESPACE
 
@@ -42,6 +44,8 @@ class Configuration : public QObject
                        resetEditorFontSize NOTIFY editorFontSizeChanged)
     Q_PROPERTY(qreal resolvedEditorFontSize READ resolvedEditorFontSize NOTIFY
                        resolvedEditorFontSizeChanged)
+    Q_PROPERTY(QVector<Substitution> sourcePathRewrites READ sourcePathRewrites WRITE
+                       setSourcePathRewrites NOTIFY sourcePathRewritesChanged)
 public:
     explicit Configuration(QObject *parent = nullptr);
     ~Configuration();
@@ -51,6 +55,8 @@ public:
 
     qreal editorFontSize() const;
     qreal resolvedEditorFontSize() const;
+
+    QVector<Substitution> sourcePathRewrites() const;
 
     void readConfig();
     void writeConfig() const;
@@ -64,14 +70,18 @@ public slots:
     void decreaseEditorFontSize();
     void resetEditorFontSize();
 
+    void setSourcePathRewrites(const QVector<Substitution> &);
+
 signals:
     void appFontChanged(const QFont &font);
     void editorFontSizeChanged(qreal fontSize);
     void resolvedEditorFontSizeChanged(qreal fontSize);
+    void sourcePathRewritesChanged(const QVector<Substitution> &);
 
 private:
     qreal m_editorFontSize = 0.0;
     qreal m_resolvedEditorFontSize = 0.0;
+    QVector<Substitution> m_sourcePathRewrites;
 
     void onAppFontChanged(const QFont &font);
 };
