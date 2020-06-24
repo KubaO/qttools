@@ -29,6 +29,8 @@
 #ifndef SOURCECODEVIEW_H
 #define SOURCECODEVIEW_H
 
+#include "configuration.h"
+
 #include <QDir>
 #include <QHash>
 #include <QPlainTextEdit>
@@ -40,6 +42,7 @@ class SourceCodeView : public QPlainTextEdit
     Q_OBJECT
 public:
     SourceCodeView(QWidget *parent = 0);
+    void setFileNameSubstitutions(const QVector<Substitution> &substs);
     void setSourceContext(const QString &fileName, const int lineNum);
 
 public slots:
@@ -50,9 +53,11 @@ private:
 
     bool m_isActive;
     QString m_fileToLoad;
-    int m_lineNumToLoad;
+    int m_lineNum;
+    QString m_currentRequestedFileName;
     QString m_currentFileName;
 
+    QVector<Substitution> m_fileNameSubstitutions;
     QHash<QString, QString> fileHash;
 };
 
