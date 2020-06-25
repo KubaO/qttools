@@ -27,6 +27,7 @@
 ****************************************************************************/
 
 #include "translator.h"
+#include "localeutils.h"
 
 #ifndef QT_BOOTSTRAPPED
 #include <QtCore/QCoreApplication>
@@ -516,7 +517,7 @@ bool loadQM(Translator &translator, QIODevice &dev, ConversionData &cd)
         } else if (tag == Language) {
             QString language;
             fromBytes((const char *)data, blockLen, &language, &utf8Fail);
-            translator.setLanguageCode(language);
+            translator.setToLanguage(LanguageCode::fromString(language));
         }
 
         data += blockLen;
@@ -527,12 +528,10 @@ bool loadQM(Translator &translator, QIODevice &dev, ConversionData &cd)
     //qDebug() << "NUMITEMS: " << numItems;
 
     QString strProN = QLatin1String("%n");
-    QLocale::Language l;
-    QLocale::Country c;
-    Translator::languageAndCountry(translator.languageCode(), &l, &c);
+    auto toLang = translator.toLanguage();
     QStringList numerusForms;
     bool guessPlurals = true;
-    if (getNumerusInfo(l, c, 0, &numerusForms, 0))
+    if (LocaleUtils::getNumerusInfo(toLang, 0, &numerusForms, 0))
         guessPlurals = (numerusForms.count() == 1);
 
     QString context, sourcetext, comment;
@@ -643,12 +642,10 @@ static bool containsStripped(const Translator &translator, const TranslatorMessa
 
 bool saveQM(const Translator &translator, QIODevice &dev, ConversionData &cd)
 {
-    Releaser releaser(translator.languageCode());
-    QLocale::Language l;
-    QLocale::Country c;
-    Translator::languageAndCountry(translator.languageCode(), &l, &c);
+    auto const toLang = translator.toLanguage();
+    Releaser releaser(toLang.toString());
     QByteArray rules;
-    if (getNumerusInfo(l, c, &rules, 0, 0))
+    if (LocaleUtils::getNumerusInfo(toLang, &rules, 0, 0))
         releaser.setNumerusRules(rules);
 
     int finished = 0;

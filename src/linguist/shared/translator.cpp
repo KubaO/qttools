@@ -27,7 +27,6 @@
 ****************************************************************************/
 
 #include "translator.h"
-
 #include "simtexth.h"
 
 #include <iostream>
@@ -45,9 +44,6 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QRegExp>
 #include <QtCore/QTextStream>
-
-#include <private/qlocale_p.h>
-#include <private/qtranslator_p.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -347,23 +343,6 @@ bool Translator::save(const QString &filename, ConversionData &cd, const QString
     cd.appendError(QString(QLatin1String("Unknown format %1 for file %2"))
         .arg(format).arg(filename));
     return false;
-}
-
-QString Translator::makeLanguageCode(QLocale::Language language, QLocale::Country country)
-{
-    QString result = QLocalePrivate::languageToCode(language);
-    if (language != QLocale::C && country != QLocale::AnyCountry) {
-        result.append(QLatin1Char('_'));
-        result.append(QLocalePrivate::countryToCode(country));
-    }
-    return result;
-}
-
-void Translator::languageAndCountry(const QString &languageCode,
-    QLocale::Language *lang, QLocale::Country *country)
-{
-    QLocale::Script script;
-    QLocalePrivate::getLangAndCountry(languageCode, *lang, script, *country);
 }
 
 int Translator::find(const TranslatorMessage &msg) const
@@ -683,13 +662,10 @@ QStringList Translator::normalizedTranslations(const TranslatorMessage &msg, int
 void Translator::normalizeTranslations(ConversionData &cd)
 {
     bool truncated = false;
-    QLocale::Language l;
-    QLocale::Country c;
-    languageAndCountry(languageCode(), &l, &c);
     int numPlurals = 1;
-    if (l != QLocale::C) {
+    if (!m_to.isC()) {
         QStringList forms;
-        if (getNumerusInfo(l, c, 0, &forms, 0))
+        if (LocaleUtils::getNumerusInfo(m_to, 0, &forms, 0))
             numPlurals = forms.count(); // includes singular
     }
     for (int i = 0; i < m_messages.count(); ++i) {
@@ -713,7 +689,7 @@ void Translator::normalizeTranslations(ConversionData &cd)
             "not set or recognized."));
 }
 
-QString Translator::guessLanguageCodeFromFileName(const QString &filename)
+LanguageCode Translator::guessLanguageCodeFromFileName(const QString &filename)
 {
     QString str = filename;
     foreach (const FileFormat &format, registeredFileFormats()) {
@@ -728,7 +704,7 @@ QString Translator::guessLanguageCodeFromFileName(const QString &filename)
         //qDebug() << "LANGUAGE FROM " << str << "LANG: " << locale.language();
         if (locale.language() != QLocale::C) {
             //qDebug() << "FOUND " << locale.name();
-            return locale.name();
+            return LanguageCode::fromLocale(locale);
         }
         int pos = str.indexOf(re);
         if (pos == -1)
@@ -736,7 +712,7 @@ QString Translator::guessLanguageCodeFromFileName(const QString &filename)
         str = str.mid(pos + 1);
     }
     //qDebug() << "LANGUAGE GUESSING UNSUCCESSFUL";
-    return QString();
+    return {};
 }
 
 bool Translator::hasExtra(const QString &key) const

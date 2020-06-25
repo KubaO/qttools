@@ -112,8 +112,8 @@ public:
     }
     ~QphHandler() override = default;
 
-    QString language() const { return m_language; }
-    QString sourceLanguage() const { return m_sourceLanguage; }
+    LanguageCode toLanguage() const { return m_toLanguage; }
+    LanguageCode fromLanguage() const { return m_fromLanguage; }
 
 private:
     bool startElement(const QStringRef &namespaceURI, const QStringRef &localName,
@@ -127,8 +127,8 @@ private:
     QString source;
     QString target;
     QString definition;
-    QString m_language;
-    QString m_sourceLanguage;
+    LanguageCode m_toLanguage;
+    LanguageCode m_fromLanguage;
 
     QString accum;
     int ferrorCount;
@@ -141,8 +141,8 @@ bool QphHandler::startElement(const QStringRef &namespaceURI, const QStringRef &
     Q_UNUSED(localName)
 
     if (qName == QLatin1String("QPH")) {
-        m_language = atts.value(QLatin1String("language")).toString();
-        m_sourceLanguage = atts.value(QLatin1String("sourcelanguage")).toString();
+        m_toLanguage = LanguageCode::fromString(atts.value(QLatin1String("language")));
+        m_fromLanguage = LanguageCode::fromString(atts.value(QLatin1String("sourcelanguage")));
     } else if (qName == QLatin1String("phrase")) {
         source.truncate(0);
         target.truncate(0);
@@ -187,35 +187,26 @@ bool QphHandler::fatalError(qint64 line, qint64 column, const QString &message)
     return false;
 }
 
-PhraseBook::PhraseBook() :
-    m_changed(false),
-    m_language(QLocale::C),
-    m_sourceLanguage(QLocale::C),
-    m_country(QLocale::AnyCountry),
-    m_sourceCountry(QLocale::AnyCountry)
-{
-}
+PhraseBook::PhraseBook() : m_changed(false) {}
 
 PhraseBook::~PhraseBook()
 {
     qDeleteAll(m_phrases);
 }
 
-void PhraseBook::setLanguageAndCountry(QLocale::Language lang, QLocale::Country country)
+void PhraseBook::setToLanguage(LanguageCode toLang)
 {
-    if (m_language == lang && m_country == country)
+    if (m_to == toLang)
         return;
-    m_language = lang;
-    m_country = country;
+    m_to = toLang;
     setModified(true);
 }
 
-void PhraseBook::setSourceLanguageAndCountry(QLocale::Language lang, QLocale::Country country)
+void PhraseBook::setFromLanguage(LanguageCode fromLang)
 {
-    if (m_sourceLanguage == lang && m_sourceCountry == country)
+    if (m_from == fromLang)
         return;
-    m_sourceLanguage = lang;
-    m_sourceCountry = country;
+    m_from = fromLang;
     setModified(true);
 }
 
@@ -232,22 +223,15 @@ bool PhraseBook::load(const QString &fileName, bool *langGuessed)
     reader.setNamespaceProcessing(false);
     bool ok = hand->parse();
 
-    Translator::languageAndCountry(hand->language(), &m_language, &m_country);
+    m_to = hand->toLanguage();
     *langGuessed = false;
-    if (m_language == QLocale::C) {
+    if (m_to.isC()) {
         QLocale sys;
-        m_language = sys.language();
-        m_country = sys.country();
+        m_to = LanguageCode::fromLocale(sys);
         *langGuessed = true;
     }
 
-    QString lang = hand->sourceLanguage();
-    if (lang.isEmpty()) {
-        m_sourceLanguage = QLocale::C;
-        m_sourceCountry = QLocale::AnyCountry;
-    } else {
-        Translator::languageAndCountry(lang, &m_sourceLanguage, &m_sourceCountry);
-    }
+    m_from = hand->fromLanguage();
 
     delete hand;
     f.close();
@@ -273,11 +257,10 @@ bool PhraseBook::save(const QString &fileName)
     t.setCodec( QTextCodec::codecForName("UTF-8") );
 
     t << "<!DOCTYPE QPH>\n<QPH";
-    if (sourceLanguage() != QLocale::C)
-        t << " sourcelanguage=\""
-          << Translator::makeLanguageCode(sourceLanguage(), sourceCountry()) << '"';
-    if (language() != QLocale::C)
-        t << " language=\"" << Translator::makeLanguageCode(language(), country()) << '"';
+    if (!m_from.isC())
+        t << " sourcelanguage=\"" << m_from.toString() << '"';
+    if (!m_to.isC())
+        t << " language=\"" << m_to.toString() << '"';
     t << ">\n";
     foreach (Phrase *p, m_phrases) {
         t << "<phrase>\n";

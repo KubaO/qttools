@@ -107,28 +107,30 @@ void TranslationSettingsDialog::on_tgtCbLanguageList_currentIndexChanged(int idx
 
 void TranslationSettingsDialog::on_buttonBox_accepted()
 {
+    LanguageCode toLang, fromLang;
+
     int itemindex = m_ui.tgtCbLanguageList->currentIndex();
     QVariant var = m_ui.tgtCbLanguageList->itemData(itemindex);
-    QLocale::Language lang = QLocale::Language(var.toInt());
+    toLang.setLanguage(QLocale::Language(var.toInt()));
 
     itemindex = m_ui.tgtCbCountryList->currentIndex();
     var = m_ui.tgtCbCountryList->itemData(itemindex);
-    QLocale::Country country = QLocale::Country(var.toInt());
+    toLang.setCountry(QLocale::Country(var.toInt()));
 
     itemindex = m_ui.srcCbLanguageList->currentIndex();
     var = m_ui.srcCbLanguageList->itemData(itemindex);
-    QLocale::Language lang2 = QLocale::Language(var.toInt());
+    fromLang.setLanguage(QLocale::Language(var.toInt()));
 
     itemindex = m_ui.srcCbCountryList->currentIndex();
     var = m_ui.srcCbCountryList->itemData(itemindex);
-    QLocale::Country country2 = QLocale::Country(var.toInt());
+    fromLang.setCountry(QLocale::Country(var.toInt()));
 
     if (m_phraseBook) {
-        m_phraseBook->setLanguageAndCountry(lang, country);
-        m_phraseBook->setSourceLanguageAndCountry(lang2, country2);
+        m_phraseBook->setToLanguage(toLang);
+        m_phraseBook->setFromLanguage(fromLang);
     } else {
-        m_dataModel->setLanguageAndCountry(lang, country);
-        m_dataModel->setSourceLanguageAndCountry(lang2, country2);
+        m_dataModel->setToLanguage(toLang);
+        m_dataModel->setFromLanguage(fromLang);
     }
 
     accept();
@@ -136,31 +138,26 @@ void TranslationSettingsDialog::on_buttonBox_accepted()
 
 void TranslationSettingsDialog::showEvent(QShowEvent *)
 {
-    QLocale::Language lang, lang2;
-    QLocale::Country country, country2;
+    LanguageCode toLang, fromLang;
 
     if (m_phraseBook) {
-        lang = m_phraseBook->language();
-        country = m_phraseBook->country();
-        lang2 = m_phraseBook->sourceLanguage();
-        country2 = m_phraseBook->sourceCountry();
+        toLang = m_phraseBook->toLanguage();
+        fromLang = m_phraseBook->fromLanguage();
     } else {
-        lang = m_dataModel->language();
-        country = m_dataModel->country();
-        lang2 = m_dataModel->sourceLanguage();
-        country2 = m_dataModel->sourceCountry();
+        toLang = m_dataModel->toLanguage();
+        fromLang = m_dataModel->fromLanguage();
     }
 
-    int itemindex = m_ui.tgtCbLanguageList->findData(QVariant(int(lang)));
+    int itemindex = m_ui.tgtCbLanguageList->findData(QVariant(int(toLang.language())));
     m_ui.tgtCbLanguageList->setCurrentIndex(itemindex == -1 ? 0 : itemindex);
 
-    itemindex = m_ui.tgtCbCountryList->findData(QVariant(int(country)));
+    itemindex = m_ui.tgtCbCountryList->findData(QVariant(int(toLang.country())));
     m_ui.tgtCbCountryList->setCurrentIndex(itemindex == -1 ? 0 : itemindex);
 
-    itemindex = m_ui.srcCbLanguageList->findData(QVariant(int(lang2)));
+    itemindex = m_ui.srcCbLanguageList->findData(QVariant(int(fromLang.language())));
     m_ui.srcCbLanguageList->setCurrentIndex(itemindex == -1 ? 0 : itemindex);
 
-    itemindex = m_ui.srcCbCountryList->findData(QVariant(int(country2)));
+    itemindex = m_ui.srcCbCountryList->findData(QVariant(int(fromLang.country())));
     m_ui.srcCbCountryList->setCurrentIndex(itemindex == -1 ? 0 : itemindex);
 }
 

@@ -74,16 +74,22 @@ void BatchTranslationDialog::setPhraseBooks(const QList<PhraseBook *> &phraseboo
         QModelIndex idx(m_model.index(i, 0));
         m_model.setData(idx, phrasebooks[i]->friendlyPhraseBookName());
         int sortOrder;
-        if (phrasebooks[i]->language() != QLocale::C
-            && m_dataModel->language(m_modelIndex) != QLocale::C) {
-            if (phrasebooks[i]->language() != m_dataModel->language(m_modelIndex))
-                sortOrder = 3;
-            else
-                sortOrder = (phrasebooks[i]->country()
-                             == m_dataModel->model(m_modelIndex)->country()) ? 0 : 1;
-        } else {
+        auto *dmodel = m_dataModel->model(m_modelIndex);
+        switch (phrasebooks[i]->toLanguage().compareTo(dmodel->toLanguage())) {
+        case LanguageCode::Equal:
+            sortOrder = 0;
+            break;
+        case LanguageCode::UnequalCountries:
+            sortOrder = 1;
+            break;
+        case LanguageCode::UnequalLanguages:
+            sortOrder = 3;
+            break;
+        case LanguageCode::UnknownLanguages:
             sortOrder = 2;
+            break;
         }
+
         m_model.setData(idx, sortOrder == 3 ? Qt::Unchecked : Qt::Checked, Qt::CheckStateRole);
         m_model.setData(idx, sortOrder, Qt::UserRole + 1);
         m_model.setData(idx, i, Qt::UserRole);

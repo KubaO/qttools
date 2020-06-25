@@ -931,6 +931,7 @@ void MainWindow::print()
                 bool printedSrc = false;
                 QString comment;
                 for (int k = 0; k < m_dataModel->modelCount(); ++k) {
+                    auto *const dmodel = m_dataModel->model(k);
                     if (const MessageItem *m = mc->messageItem(k, j)) {
                         if (!printedSrc) {
                             pout.addBox(40, m->text());
@@ -940,7 +941,7 @@ void MainWindow::print()
                         } else {
                             pout.addBox(44); // Maybe put the name of the translation here
                         }
-                        if (m->message().isPlural() && m_dataModel->language(k) != QLocale::C) {
+                        if (m->message().isPlural() && !dmodel->toLanguage().isC()) {
                             QStringList transls = m->translations();
                             pout.addBox(40, transls.join(QLatin1Char('\n')));
                         } else {
@@ -1297,18 +1298,20 @@ void MainWindow::printPhraseBook(QAction *action)
 
 void MainWindow::addToPhraseBook()
 {
+    auto *const dmodel = m_dataModel->model(m_currentIndex.model());
     QStringList phraseBookList;
     QHash<QString, PhraseBook *> phraseBookHash;
     foreach (PhraseBook *pb, m_phraseBooks) {
-        if (pb->language() != QLocale::C && m_dataModel->language(m_currentIndex.model()) != QLocale::C) {
-            if (pb->language() != m_dataModel->language(m_currentIndex.model()))
-                continue;
-            if (pb->country() == m_dataModel->model(m_currentIndex.model())->country())
-                phraseBookList.prepend(pb->friendlyPhraseBookName());
-            else
-                phraseBookList.append(pb->friendlyPhraseBookName());
-        } else {
+        switch (pb->toLanguage().compareTo(dmodel->toLanguage())) {
+        case LanguageCode::Equal:
+            phraseBookList.prepend(pb->friendlyPhraseBookName());
+            break;
+        case LanguageCode::UnequalCountries:
+        case LanguageCode::UnknownLanguages:
             phraseBookList.append(pb->friendlyPhraseBookName());
+            break;
+        case LanguageCode::UnequalLanguages:
+            continue;
         }
         phraseBookHash.insert(pb->friendlyPhraseBookName(), pb);
     }
@@ -2412,19 +2415,24 @@ void MainWindow::updatePhraseBookActions()
     m_ui.actionAddToPhraseBook->setEnabled(currentMessageIndex().isValid() && phraseBookLoaded);
 }
 
-void MainWindow::updatePhraseDictInternal(int model)
+void MainWindow::updatePhraseDictInternal(int const model)
 {
-    QHash<QString, QList<Phrase *> > &pd = m_phraseDict[model];
+    QHash<QString, QList<Phrase *>> &pd = m_phraseDict[model];
 
+    auto *const dmodel = m_dataModel->model(model);
     pd.clear();
     foreach (PhraseBook *pb, m_phraseBooks) {
         bool before;
-        if (pb->language() != QLocale::C && m_dataModel->language(model) != QLocale::C) {
-            if (pb->language() != m_dataModel->language(model))
-                continue;
-            before = (pb->country() == m_dataModel->model(model)->country());
-        } else {
+        switch (pb->toLanguage().compareTo(dmodel->toLanguage())) {
+        case LanguageCode::Equal:
+            before = true;
+            break;
+        case LanguageCode::UnknownLanguages:
+        case LanguageCode::UnequalCountries:
             before = false;
+            break;
+        case LanguageCode::UnequalLanguages:
+            continue;
         }
         foreach (Phrase *p, pb->phrases()) {
             QString f = friendlyString(p->source());
@@ -2494,6 +2502,7 @@ void MainWindow::updateDanger(const MultiDataIndex &index, bool verbose)
     for (int mi = 0; mi < m_dataModel->modelCount(); ++mi) {
         if (!m_dataModel->isModelWritable(mi))
             continue;
+        auto *const miModel = m_dataModel->model(mi);
         curIdx.setModel(mi);
         MessageItem *m = m_dataModel->messageItem(curIdx);
         if (!m || m->isObsolete())
@@ -2548,8 +2557,8 @@ void MainWindow::updateDanger(const MultiDataIndex &index, bool verbose)
             if (m_ui.actionEndingPunctuation->isChecked()) {
                 bool endingok = true;
                 for (int i = 0; i < translations.count() && endingok; ++i) {
-                    endingok &= (ending(source, m_dataModel->sourceLanguage(mi)) ==
-                                ending(translations[i], m_dataModel->language(mi)));
+                    endingok &= (ending(source, miModel->fromLanguage().language())
+                                 == ending(translations[i], miModel->toLanguage().language()));
                 }
 
                 if (!endingok) {

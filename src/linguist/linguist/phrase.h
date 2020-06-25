@@ -34,6 +34,7 @@
 #include <QList>
 #include <QtCore/QLocale>
 
+#include "localeutils.h"
 #include "simtexth.h"
 
 QT_BEGIN_NAMESPACE
@@ -92,12 +93,10 @@ public:
     QString friendlyPhraseBookName() const;
     bool isModified() const { return m_changed; }
 
-    void setLanguageAndCountry(QLocale::Language lang, QLocale::Country country);
-    QLocale::Language language() const { return m_language; }
-    QLocale::Country country() const { return m_country; }
-    void setSourceLanguageAndCountry(QLocale::Language lang, QLocale::Country country);
-    QLocale::Language sourceLanguage() const { return m_sourceLanguage; }
-    QLocale::Country sourceCountry() const { return m_sourceCountry; }
+    void setToLanguage(LanguageCode toLang);
+    LanguageCode toLanguage() const { return m_to; }
+    void setFromLanguage(LanguageCode fromLang);
+    LanguageCode fromLanguage() const { return m_from; }
 
 signals:
     void modifiedChanged(bool changed);
@@ -115,10 +114,8 @@ private:
     QString m_fileName;
     bool m_changed;
 
-    QLocale::Language m_language;
-    QLocale::Language m_sourceLanguage;
-    QLocale::Country m_country;
-    QLocale::Country m_sourceCountry;
+    LanguageCode m_to;
+    LanguageCode m_from;
 
     friend class QphHandler;
     friend class Phrase;

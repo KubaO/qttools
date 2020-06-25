@@ -684,8 +684,8 @@ bool XLIFFHandler::characters(const QStringRef &ch)
 
 bool XLIFFHandler::endDocument()
 {
-    m_translator.setLanguageCode(m_language);
-    m_translator.setSourceLanguageCode(m_sourceLanguage);
+    m_translator.setToLanguage(LanguageCode::fromString(m_language));
+    m_translator.setFromLanguage(LanguageCode::fromString(m_sourceLanguage));
     return true;
 }
 
@@ -786,12 +786,12 @@ bool saveXLIFF(const Translator &translator, QIODevice &dev, ConversionData &cd)
        << "\" xmlns:trolltech=\"" << TrollTsNamespaceURI << "\">\n";
     ++indent;
     writeExtras(ts, indent, translator.extras(), drops);
-    QString sourceLanguageCode = translator.sourceLanguageCode();
-    if (sourceLanguageCode.isEmpty() || sourceLanguageCode == QLatin1String("C"))
-        sourceLanguageCode = QLatin1String("en");
-    else
-        sourceLanguageCode.replace(QLatin1Char('_'), QLatin1Char('-'));
-    QString languageCode = translator.languageCode();
+    auto fromLang = translator.fromLanguage();
+    if (fromLang.isC())
+        fromLang.setLanguage(QLocale::English);
+    QString sourceLanguageCode = fromLang.toString();
+    sourceLanguageCode.replace(QLatin1Char('_'), QLatin1Char('-'));
+    QString languageCode = translator.toLanguage().toString();
     languageCode.replace(QLatin1Char('_'), QLatin1Char('-'));
     foreach (const QString &fn, fileOrder) {
         writeIndent(ts, indent);

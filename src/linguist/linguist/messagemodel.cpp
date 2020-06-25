@@ -111,16 +111,14 @@ MessageItem *ContextItem::findMessage(const QString &sourcetext, const QString &
  *****************************************************************************/
 
 DataModel::DataModel(QObject *parent)
-  : QObject(parent),
-    m_modified(false),
-    m_numMessages(0),
-    m_srcWords(0),
-    m_srcChars(0),
-    m_srcCharsSpc(0),
-    m_language(QLocale::Language(-1)),
-    m_sourceLanguage(QLocale::Language(-1)),
-    m_country(QLocale::Country(-1)),
-    m_sourceCountry(QLocale::Country(-1))
+    : QObject(parent),
+      m_modified(false),
+      m_numMessages(0),
+      m_srcWords(0),
+      m_srcChars(0),
+      m_srcCharsSpc(0),
+      m_to { QLocale::Language(-1), QLocale::Country(-1) },
+      m_from { QLocale::Language(-1), QLocale::Country(-1) }
 {}
 
 QStringList DataModel::normalizedTranslations(const MessageItem &m) const
@@ -271,26 +269,23 @@ bool DataModel::load(const QString &fileName, bool *langGuessed, QWidget *parent
     //   if that fails
     // 3. Retrieve the locale from the system.
     *langGuessed = false;
-    QString lang = tor.languageCode();
-    if (lang.isEmpty()) {
-        lang = QFileInfo(fileName).baseName();
-        int pos = lang.indexOf(QLatin1Char('_'));
+    auto toLang = tor.toLanguage();
+    if (toLang.isC()) {
+        QString name = QFileInfo(fileName).baseName();
+        int pos = name.indexOf(QLatin1Char('_'));
         if (pos != -1)
-            lang.remove(0, pos + 1);
+            name.remove(0, pos + 1);
         else
-            lang.clear();
+            name.clear();
+        toLang = LanguageCode::fromString(name);
         *langGuessed = true;
     }
-    QLocale::Language l;
-    QLocale::Country c;
-    Translator::languageAndCountry(lang, &l, &c);
-    if (l == QLocale::C) {
+    if (toLang.isC()) {
         QLocale sys;
-        l = sys.language();
-        c = sys.country();
+        toLang = LanguageCode::fromLocale(sys);
         *langGuessed = true;
     }
-    if (!setLanguageAndCountry(l, c))
+    if (!setToLanguage(toLang))
         QMessageBox::warning(parent, QObject::tr("Qt Linguist"),
                              tr("Linguist does not know the plural rules for '%1'.\n"
                                 "Will assume a single universal form.")
@@ -298,15 +293,9 @@ bool DataModel::load(const QString &fileName, bool *langGuessed, QWidget *parent
     // Try to detect the correct source language in the following order
     // 1. Look for the language attribute in the ts
     //   if that fails
-    // 2. Assume English
-    lang = tor.sourceLanguageCode();
-    if (lang.isEmpty()) {
-        l = QLocale::C;
-        c = QLocale::AnyCountry;
-    } else {
-        Translator::languageAndCountry(lang, &l, &c);
-    }
-    setSourceLanguageAndCountry(l, c);
+    // 2. Assume English (C)
+    auto fromLang = tor.fromLanguage();
+    setFromLanguage(fromLang);
 
     setModified(false);
 
@@ -319,8 +308,8 @@ bool DataModel::save(const QString &fileName, QWidget *parent)
     for (DataModelIterator it(this); it.isValid(); ++it)
         tor.append(it.current()->message());
 
-    tor.setLanguageCode(Translator::makeLanguageCode(m_language, m_country));
-    tor.setSourceLanguageCode(Translator::makeLanguageCode(m_sourceLanguage, m_sourceCountry));
+    tor.setToLanguage(m_to);
+    tor.setFromLanguage(m_from);
     tor.setLocationsType(m_relativeLocations ? Translator::RelativeLocations
                                              : Translator::AbsoluteLocations);
     tor.setExtras(m_extra);
@@ -352,8 +341,7 @@ bool DataModel::release(const QString &fileName, bool verbose, bool ignoreUnfini
         return false;
     }
     Translator tor;
-    QLocale locale(m_language, m_country);
-    tor.setLanguageCode(locale.name());
+    tor.setToLanguage(m_to);
     for (DataModelIterator it(this); it.isValid(); ++it)
         tor.append(it.current()->message());
     ConversionData cd;
@@ -384,19 +372,19 @@ void DataModel::doCharCounting(const QString &text, int &trW, int &trC, int &trC
     }
 }
 
-bool DataModel::setLanguageAndCountry(QLocale::Language lang, QLocale::Country country)
+bool DataModel::setToLanguage(LanguageCode toLang)
 {
-    if (m_language == lang && m_country == country)
+    if (m_to == toLang)
         return true;
-    m_language = lang;
-    m_country = country;
+    m_to = toLang;
 
-    if (lang == QLocale::C || uint(lang) > uint(QLocale::LastLanguage)) // XXX does this make any sense?
-        lang = QLocale::English;
+    if (m_to.isC()
+        || uint(m_to.language()) > uint(QLocale::LastLanguage)) // XXX does this make any sense?
+        toLang.setLanguage(QLocale::English);
     QByteArray rules;
-    bool ok = getNumerusInfo(lang, country, &rules, &m_numerusForms, 0);
-    QLocale loc(lang, country);
-    m_localizedLanguage = QLocale::countriesForLanguage(lang).size() > 1
+    bool ok = LocaleUtils::getNumerusInfo(toLang, &rules, &m_numerusForms, 0);
+    QLocale loc = toLang.toLocale();
+    m_localizedLanguage = QLocale::countriesForLanguage(toLang.language()).size() > 1
             //: <language> (<country>)
             ? tr("%1 (%2)").arg(loc.nativeLanguageName(), loc.nativeCountryName())
             : loc.nativeLanguageName();
@@ -415,12 +403,11 @@ bool DataModel::setLanguageAndCountry(QLocale::Language lang, QLocale::Country c
     return ok;
 }
 
-void DataModel::setSourceLanguageAndCountry(QLocale::Language lang, QLocale::Country country)
+void DataModel::setFromLanguage(LanguageCode toLang)
 {
-    if (m_sourceLanguage == lang && m_sourceCountry == country)
+    if (m_from == toLang)
         return;
-    m_sourceLanguage = lang;
-    m_sourceCountry = country;
+    m_from = toLang;
     setModified(true);
 }
 

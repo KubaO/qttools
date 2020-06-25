@@ -26,7 +26,7 @@
 **
 ****************************************************************************/
 
-#include "translator.h"
+#include "localeutils.h"
 
 #include <QtCore/QByteArray>
 #include <QtCore/QDebug>
@@ -353,16 +353,18 @@ static const NumerusTableEntry numerusTable[] = {
 
 static const int NumerusTableSize = sizeof(numerusTable) / sizeof(numerusTable[0]);
 
-bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
-                    QByteArray *rules, QStringList *forms, const char **gettextRules)
+namespace LocaleUtils {
+
+bool getNumerusInfo(LanguageCode lc, QByteArray *rules, QStringList *forms,
+                    const char **gettextRules)
 {
     while (true) {
         for (int i = 0; i < NumerusTableSize; ++i) {
             const NumerusTableEntry &entry = numerusTable[i];
             for (int j = 0; entry.languages[j] != EOL; ++j) {
-                if (entry.languages[j] == language
-                        && ((!entry.countries && country == QLocale::AnyCountry)
-                            || (entry.countries && entry.countries[j] == country))) {
+                if (entry.languages[j] == lc.language()
+                    && ((!entry.countries && lc.country() == QLocale::AnyCountry)
+                        || (entry.countries && entry.countries[j] == lc.country()))) {
                     if (rules) {
                         *rules = QByteArray::fromRawData(reinterpret_cast<const char *>(entry.rules),
                                                     entry.rulesSize);
@@ -379,9 +381,9 @@ bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
             }
         }
 
-        if (country == QLocale::AnyCountry)
+        if (lc.country() == QLocale::AnyCountry)
             break;
-        country = QLocale::AnyCountry;
+        lc.setCountry(QLocale::AnyCountry);
     }
     return false;
 }
@@ -408,5 +410,7 @@ QString getNumerusInfoString()
     langs.sort();
     return langs.join(QString());
 }
+
+} // namespace LocaleUtils
 
 QT_END_NAMESPACE

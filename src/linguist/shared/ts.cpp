@@ -241,8 +241,8 @@ bool TSReader::read(Translator &translator)
 
             QXmlStreamAttributes atts = attributes();
             //QString version = atts.value(strversion).toString();
-            translator.setLanguageCode(atts.value(strlanguage).toString());
-            translator.setSourceLanguageCode(atts.value(strsourcelanguage).toString());
+            translator.setToLanguage(LanguageCode::fromString(atts.value(strlanguage)));
+            translator.setFromLanguage(LanguageCode::fromString(atts.value(strsourcelanguage)));
             while (!atEnd()) {
                 readNext();
                 if (isEndElement()) {
@@ -524,12 +524,12 @@ bool saveTS(const Translator &translator, QIODevice &dev, ConversionData &cd)
 
     t << "<TS version=\"2.1\"";
 
-    QString languageCode = translator.languageCode();
-    if (!languageCode.isEmpty() && languageCode != QLatin1String("C"))
-        t << " language=\"" << languageCode << "\"";
-    languageCode = translator.sourceLanguageCode();
-    if (!languageCode.isEmpty() && languageCode != QLatin1String("C"))
-        t << " sourcelanguage=\"" << languageCode << "\"";
+    auto toLang = translator.toLanguage();
+    if (!toLang.isC())
+        t << " language=\"" << toLang.toString() << "\"";
+    auto fromLang = translator.fromLanguage();
+    if (!fromLang.isC())
+        t << " sourcelanguage=\"" << fromLang.toString() << "\"";
     t << ">\n";
 
     QStringList deps = translator.dependencies();

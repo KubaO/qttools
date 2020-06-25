@@ -30,6 +30,7 @@
 #define MESSAGEMODEL_H
 
 #include "translator.h"
+#include "localeutils.h"
 
 #include <QtCore/QAbstractItemModel>
 #include <QtCore/QList>
@@ -197,12 +198,10 @@ public:
     static QString prettifyPlainFileName(const QString &fn);
     static QString prettifyFileName(const QString &fn);
 
-    bool setLanguageAndCountry(QLocale::Language lang, QLocale::Country country);
-    QLocale::Language language() const { return m_language; }
-    QLocale::Country country() const { return m_country; }
-    void setSourceLanguageAndCountry(QLocale::Language lang, QLocale::Country country);
-    QLocale::Language sourceLanguage() const { return m_sourceLanguage; }
-    QLocale::Country sourceCountry() const { return m_sourceCountry; }
+    bool setToLanguage(LanguageCode toLang);
+    LanguageCode toLanguage() const { return m_to; }
+    void setFromLanguage(LanguageCode fromLang);
+    LanguageCode fromLanguage() const { return m_from; }
 
     const QString &localizedLanguage() const { return m_localizedLanguage; }
     const QStringList &numerusForms() const { return m_numerusForms; }
@@ -240,10 +239,8 @@ private:
     int m_srcCharsSpc;
 
     QString m_srcFileName;
-    QLocale::Language m_language;
-    QLocale::Language m_sourceLanguage;
-    QLocale::Country m_country;
-    QLocale::Country m_sourceCountry;
+    LanguageCode m_to;
+    LanguageCode m_from;
     bool m_relativeLocations;
     Translator::ExtraData m_extra;
 
@@ -415,8 +412,6 @@ public:
     bool isModelWritable(int model) const { return m_dataModels[model]->isWritable(); }
     bool isModified(int model) const { return m_dataModels[model]->isModified(); }
     void setModified(int model, bool dirty) { m_dataModels[model]->setModified(dirty); }
-    QLocale::Language language(int model) const { return m_dataModels[model]->language(); }
-    QLocale::Language sourceLanguage(int model) const { return m_dataModels[model]->sourceLanguage(); }
 
     // Per message
     void setTranslation(const MultiDataIndex &index, const QString &translation);

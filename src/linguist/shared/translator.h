@@ -30,6 +30,7 @@
 #define METATRANSLATOR_H
 
 #include "translatormessage.h"
+#include "localeutils.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -141,19 +142,16 @@ public:
     Duplicates resolveDuplicates();
     void reportDuplicates(const Duplicates &dupes, const QString &fileName, bool verbose);
 
-    QString languageCode() const { return m_language; }
-    QString sourceLanguageCode() const { return m_sourceLanguage; }
+    LanguageCode toLanguage() const { return m_to; }
+    LanguageCode fromLanguage() const { return m_from; }
 
     enum LocationsType { DefaultLocations, NoLocations, RelativeLocations, AbsoluteLocations };
     void setLocationsType(LocationsType lt) { m_locationsType = lt; }
     LocationsType locationsType() const { return m_locationsType; }
 
-    static QString makeLanguageCode(QLocale::Language language, QLocale::Country country);
-    static void languageAndCountry(const QString &languageCode,
-        QLocale::Language *lang, QLocale::Country *country);
-    void setLanguageCode(const QString &languageCode) { m_language = languageCode; }
-    void setSourceLanguageCode(const QString &languageCode) { m_sourceLanguage = languageCode; }
-    static QString guessLanguageCodeFromFileName(const QString &fileName);
+    void setToLanguage(LanguageCode toCode) { m_to = toCode; }
+    void setFromLanguage(LanguageCode fromCode) { m_from = fromCode; }
+    static LanguageCode guessLanguageCodeFromFileName(const QString &fileName);
     QList<TranslatorMessage> messages() const;
     static QStringList normalizedTranslations(const TranslatorMessage &m, int numPlurals);
     void normalizeTranslations(ConversionData &cd);
@@ -211,17 +209,8 @@ private:
     TMM m_messages;
     LocationsType m_locationsType;
 
-    // A string beginning with a 2 or 3 letter language code (ISO 639-1
-    // or ISO-639-2), followed by the optional country variant to distinguish
-    //  between country-specific variations of the language. The language code
-    // and country code are always separated by '_'
-    // Note that the language part can also be a 3-letter ISO 639-2 code.
-    // Legal examples:
-    // 'pt'         portuguese, assumes portuguese from portugal
-    // 'pt_BR'      Brazilian portuguese (ISO 639-1 language code)
-    // 'por_BR'     Brazilian portuguese (ISO 639-2 language code)
-    QString m_language;
-    QString m_sourceLanguage;
+    LanguageCode m_to;
+    LanguageCode m_from;
     QStringList m_dependencies;
     ExtraData m_extra;
 
@@ -230,11 +219,6 @@ private:
     mutable QHash<QString, int> m_idMsgIdx;
     mutable QHash<TMMKey, int> m_msgIdx;
 };
-
-bool getNumerusInfo(QLocale::Language language, QLocale::Country country,
-                    QByteArray *rules, QStringList *forms, const char **gettextRules);
-
-QString getNumerusInfoString();
 
 bool saveQM(const Translator &translator, QIODevice &dev, ConversionData &cd);
 

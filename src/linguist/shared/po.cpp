@@ -27,6 +27,7 @@
 ****************************************************************************/
 
 #include "translator.h"
+#include "localeutils.h"
 
 #include <QtCore/QDebug>
 #include <QtCore/QIODevice>
@@ -447,6 +448,8 @@ bool loadPO(Translator &translator, QIODevice &dev, ConversionData &cd)
                 QHash<QString, QByteArray> extras;
                 QList<QByteArray> hdrOrder;
                 QByteArray pluralForms;
+                LanguageCode toLang, fromLang;
+
                 foreach (const QByteArray &hdr, item.msgStr.first().split('\n')) {
                     if (hdr.isEmpty())
                         continue;
@@ -461,9 +464,9 @@ bool loadPO(Translator &translator, QIODevice &dev, ConversionData &cd)
                     QByteArray hdrValue = hdr.mid(idx + 1).trimmed();
                     hdrOrder << hdrName;
                     if (hdrName == "X-Language") {
-                        translator.setLanguageCode(QString::fromLatin1(hdrValue));
+                        toLang = LanguageCode::fromLatin1(hdrValue);
                     } else if (hdrName == "X-Source-Language") {
-                        translator.setSourceLanguageCode(QString::fromLatin1(hdrValue));
+                        fromLang = LanguageCode::fromLatin1(hdrValue);
                     } else if (hdrName == "X-Qt-Contexts") {
                         qtContexts = (hdrValue == "true");
                     } else if (hdrName == "Plural-Forms") {
@@ -502,11 +505,15 @@ bool loadPO(Translator &translator, QIODevice &dev, ConversionData &cd)
                         extras[makePoHeader(QString::fromLatin1(hdrName))] = hdrValue;
                     }
                 }
+                if (!toLang.isC())
+                    translator.setToLanguage(toLang);
+                if (!fromLang.isC())
+                    translator.setFromLanguage(fromLang);
                 if (!pluralForms.isEmpty()) {
-                    if (translator.languageCode().isEmpty()) {
+                    if (translator.toLanguage().isC()) {
                         extras[makePoHeader(QLatin1String("Plural-Forms"))] = pluralForms;
                     } else {
-                         // FIXME: have fun with making a consistency check ...
+                        // FIXME: have fun with making a consistency check ...
                     }
                 }
                 // Eliminate the field if only headers we added are present in standard order.
@@ -756,17 +763,16 @@ bool savePO(const Translator &translator, QIODevice &dev, ConversionData &)
     addPoHeader(headers, hdrOrder, "Content-Type",
                 QLatin1String("text/plain; charset=" + out.codec()->name()));
     addPoHeader(headers, hdrOrder, "Content-Transfer-Encoding", QLatin1String("8bit"));
-    if (!translator.languageCode().isEmpty()) {
-        QLocale::Language l;
-        QLocale::Country c;
-        Translator::languageAndCountry(translator.languageCode(), &l, &c);
+    auto const toLang = translator.toLanguage();
+    if (!toLang.isC()) {
         const char *gettextRules;
-        if (getNumerusInfo(l, c, 0, 0, &gettextRules))
+        QString const toLangStr = toLang.toString();
+        if (LocaleUtils::getNumerusInfo(toLang, 0, 0, &gettextRules))
             addPoHeader(headers, hdrOrder, "Plural-Forms", QLatin1String(gettextRules));
-        addPoHeader(headers, hdrOrder, "X-Language", translator.languageCode());
+        addPoHeader(headers, hdrOrder, "X-Language", toLangStr);
     }
-    if (!translator.sourceLanguageCode().isEmpty())
-        addPoHeader(headers, hdrOrder, "X-Source-Language", translator.sourceLanguageCode());
+    if (!translator.fromLanguage().isC())
+        addPoHeader(headers, hdrOrder, "X-Source-Language", translator.fromLanguage().toString());
     if (qtContexts)
         addPoHeader(headers, hdrOrder, "X-Qt-Contexts", QLatin1String("true"));
     QString hdrStr;

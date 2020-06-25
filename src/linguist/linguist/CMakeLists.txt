@@ -53,6 +53,7 @@ add_executable(linguist
    ../shared/ts.cpp
    ../shared/xliff.cpp
    # Other Shared Code
+   ../shared/localeutils.cpp
    ../shared/numerus.cpp
    ../shared/simtexth.cpp
    ../shared/translator.cpp
