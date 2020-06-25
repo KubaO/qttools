@@ -272,12 +272,7 @@ bool DataModel::load(const QString &fileName, bool *langGuessed, QWidget *parent
     auto toLang = tor.toLanguage();
     if (toLang.isC()) {
         QString name = QFileInfo(fileName).baseName();
-        int pos = name.indexOf(QLatin1Char('_'));
-        if (pos != -1)
-            name.remove(0, pos + 1);
-        else
-            name.clear();
-        toLang = LanguageCode::fromString(name);
+        toLang = Translator::guessLanguageCodeFromFileName(name);
         *langGuessed = true;
     }
     if (toLang.isC()) {
