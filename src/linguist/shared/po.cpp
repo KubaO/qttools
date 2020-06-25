@@ -467,6 +467,20 @@ bool loadPO(Translator &translator, QIODevice &dev, ConversionData &cd)
                         toLang = LanguageCode::fromLatin1(hdrValue);
                     } else if (hdrName == "X-Source-Language") {
                         fromLang = LanguageCode::fromLatin1(hdrValue);
+                    } else if (hdrName == "X-Poedit-Language") {
+                        if (toLang.language() == QLocale::C)
+                            toLang.setLanguage(
+                                    LocaleUtils::stringToLanguage(QString::fromLatin1(hdrValue)));
+                    } else if (hdrName == "X-Poedit-Country") {
+                        if (toLang.country() == QLocale::AnyCountry)
+                            toLang.setCountry(
+                                    LocaleUtils::stringToCountry(QString::fromLatin1(hdrValue)));
+                    } else if (hdrName == "Language") {
+                        if (!hdrValue.isEmpty()) {
+                            QLocale locale(QString::fromLatin1(hdrValue));
+                            if (locale != QLocale::c())
+                                toLang = LanguageCode::fromLocale(locale);
+                        }
                     } else if (hdrName == "X-Qt-Contexts") {
                         qtContexts = (hdrValue == "true");
                     } else if (hdrName == "Plural-Forms") {
@@ -770,6 +784,14 @@ bool savePO(const Translator &translator, QIODevice &dev, ConversionData &)
         if (LocaleUtils::getNumerusInfo(toLang, 0, 0, &gettextRules))
             addPoHeader(headers, hdrOrder, "Plural-Forms", QLatin1String(gettextRules));
         addPoHeader(headers, hdrOrder, "X-Language", toLangStr);
+        if (hdrOrder.contains(QLatin1String("Language")))
+            addPoHeader(headers, hdrOrder, "Language", toLangStr.split(QLatin1Char('_')).first());
+        if (hdrOrder.contains(QLatin1String("X-Poedit-Language")))
+            addPoHeader(headers, hdrOrder, "X-Poedit-Language",
+                        QLocale::languageToString(toLang.language()));
+        if (hdrOrder.contains(QLatin1String("X-Poedit-Country")))
+            addPoHeader(headers, hdrOrder, "X-Poedit-Country",
+                        QLocale::countryToString(toLang.country()).toUpper());
     }
     if (!translator.fromLanguage().isC())
         addPoHeader(headers, hdrOrder, "X-Source-Language", translator.fromLanguage().toString());

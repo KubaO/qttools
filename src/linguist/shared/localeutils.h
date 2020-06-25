@@ -104,6 +104,11 @@ private:
 
 namespace LocaleUtils {
 
+const QList<QLocale::Language> &getAllLanguages();
+const QList<QLocale::Country> &getAllCountries();
+QLocale::Language stringToLanguage(const QString &text);
+QLocale::Country stringToCountry(const QString &text);
+
 bool getNumerusInfo(LanguageCode langCode, QByteArray *rules, QStringList *forms,
                     const char **gettextRules);
 
